@@ -4,12 +4,14 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.firefox.options import Options
 import socket
 import time
 import re
 import requests
 from urllib.parse import urlsplit
 import tldextract
+import signal
 
 class collector:
     kGoogleMapsUrl = "https://www.google.com/maps/"
@@ -22,15 +24,21 @@ class collector:
     kResultDetailsRoleClass = "section-result-details"
     kResultDetailsLocationClass = "section-result-location"
 
-    kEmailRegex = '(?:[a-z0-9!#$%&\'*+\/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&\'*+\/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])'
+    kEmailRegex = '[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+'
     kEmailInvalidBoundingCharacters = ("!", "#", "$", "%", "&", "'", "*", "+", "-", "/", "=", "?", "^", "_", "`", "{", "|", '"', "(", ")", ",", ":", ";", "<", ">", "@", "[", "\\", "]" )
 
     kRequestHeaders = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.76 Safari/537.36', "Upgrade-Insecure-Requests": "1","DNT": "1","Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Accept-Language": "en-US,en;q=0.5","Accept-Encoding": "gzip, deflate"}
 
     def __init__ (self):
         # Open a virtual browser instance
-        self.driver = webdriver.Firefox();
+        options = Options()
+        options.headless = True
+        self.driver = webdriver.Firefox(options=options)
+
         self.driver.set_page_load_timeout(5)
+
+    def _raise(ex):
+        raise ex
 
     def connected(self, host="8.8.8.8", port=53, timeout=3):
         """
@@ -62,15 +70,15 @@ class collector:
 
         # wait for search results to become available
         try:
-            secondsDelay = 10 # max number of seconds to delay before continuing
+            secondsDelay = 20 # max number of seconds to delay before continuing
             WebDriverWait(self.driver, secondsDelay).until(EC.presence_of_element_located((By.CLASS_NAME, self.kGoogleMapsSearchResultClass)))
         except TimeoutException:
-            print("Search results did not load in time. Skipping this city.")
-            return []
+            print("Search results did not load in time... May fail to collect data from this city.")
 
         ## begin parsing through the search results
         time.sleep (5)
         resultElements = self.driver.find_elements_by_class_name(self.kGoogleMapsSearchResultClass)
+        if (len(resultElements) == 0): return []
         results = []
         print(f"Found {len(resultElements)} results for query 'churches in {city}, {state}'...")
         for element in resultElements:
@@ -93,13 +101,14 @@ class collector:
         for result in results:
             if not result["url"]: continue
             urlparts = urlsplit(result["url"])
-            url = f"{urlparts.scheme}://{urlparts.netloc}{urlparts.path}"
+            url = result["url"]
             # get HTTP raw response
+
             try:
                 start = time.clock()
                 print(f"Getting raw html from '{url}'... ", end='')
-                response = requests.get(url, headers=self.kRequestHeaders)
-            except (requests.exceptions.MissingSchema, requests.exceptions.ConnectionError):
+                response = requests.get(url, headers=self.kRequestHeaders, timeout=(10,5))
+            except:
                 print(f"failed.")
                 continue
             if (not response.ok):
