@@ -4,6 +4,7 @@ from tkinter import Tk, filedialog
 import easygui
 import os
 import csv
+import socket
 
 def collectAndStore(aggregator, collector, blacklist=[]):
     # First let user choose where they want to store bulk of data
@@ -32,7 +33,11 @@ def collectAndStore(aggregator, collector, blacklist=[]):
                 # write headers
                 csvWriter.writerow(["name", "location", "type", "url", "email"])
                 # collect info
-                results = collector.getByCity(city["city"], state)
+                try:
+                    results = collector.getByCity(city["city"], state)
+                except ConnectionError:
+                    input ("Not connected. Please reconnect and press any key to continue")
+                    continue
                 if (len(results) == 0): continue
                 for result in results:
                     for email in result["emails"]:

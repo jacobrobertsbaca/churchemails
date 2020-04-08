@@ -4,6 +4,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
+import socket
 import time
 import re
 import requests
@@ -24,12 +25,32 @@ class collector:
     kEmailRegex = '(?:[a-z0-9!#$%&\'*+\/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&\'*+\/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])'
     kEmailInvalidBoundingCharacters = ("!", "#", "$", "%", "&", "'", "*", "+", "-", "/", "=", "?", "^", "_", "`", "{", "|", '"', "(", ")", ",", ":", ";", "<", ">", "@", "[", "\\", "]" )
 
+    kRequestHeaders = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.76 Safari/537.36', "Upgrade-Insecure-Requests": "1","DNT": "1","Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Accept-Language": "en-US,en;q=0.5","Accept-Encoding": "gzip, deflate"}
+
     def __init__ (self):
         # Open a virtual browser instance
         self.driver = webdriver.Firefox();
         self.driver.set_page_load_timeout(5)
 
+    def connected(self, host="8.8.8.8", port=53, timeout=3):
+        """
+        Host: 8.8.8.8 (google-public-dns-a.google.com)
+        OpenPort: 53/tcp
+        Service: domain (DNS/TCP)
+        """
+        try:
+            socket.setdefaulttimeout(timeout)
+            socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
+            return True
+        except socket.error as ex:
+            print(ex)   
+        return False
+
     def getByCity(self, city, state):
+        # check if connected
+        if (not self.connected()):
+            raise ConnectionError("Not connected")
+
         # caller did not pass in city or state
         if (not city or not state): return
         print(f"\n\n-------SEARCHING CHURCHES IN {city.upper()}, {state.upper()}-------")
@@ -41,7 +62,7 @@ class collector:
 
         # wait for search results to become available
         try:
-            secondsDelay = 7 # max number of seconds to delay before continuing
+            secondsDelay = 10 # max number of seconds to delay before continuing
             WebDriverWait(self.driver, secondsDelay).until(EC.presence_of_element_located((By.CLASS_NAME, self.kGoogleMapsSearchResultClass)))
         except TimeoutException:
             print("Search results did not load in time. Skipping this city.")
@@ -77,7 +98,7 @@ class collector:
             try:
                 start = time.clock()
                 print(f"Getting raw html from '{url}'... ", end='')
-                response = requests.get(url)
+                response = requests.get(url, headers=self.kRequestHeaders)
             except (requests.exceptions.MissingSchema, requests.exceptions.ConnectionError):
                 print(f"failed.")
                 continue
