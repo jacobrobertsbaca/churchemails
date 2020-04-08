@@ -1,10 +1,11 @@
 import Collector
 import DataAggregator
 from tkinter import Tk, filedialog
+import easygui
 import os
 import csv
 
-def collectAndStore(aggregator, collector):
+def collectAndStore(aggregator, collector, blacklist=[]):
     # First let user choose where they want to store bulk of data
     root = Tk()
     root.withdraw()
@@ -14,6 +15,9 @@ def collectAndStore(aggregator, collector):
     # Go through each state and go through each city and begin to collect data,
     # storing it into csv as we go
     for state, cities in aggregator.byState.items():
+        # Don't search in state if this stae is in the blacklist
+        if (state in blacklist): continue
+
         # Create state directory
         statePath = os.path.join(storePath, state)
         if (not os.path.isdir(statePath)): os.mkdir(statePath)
@@ -40,9 +44,18 @@ def collectAndStore(aggregator, collector):
                             email
                         ])
 
+def getBlacklist():
+    path = easygui.fileopenbox("Select optional blacklist file", None, "*", "*.txt")
+    if (not path): return []
+    with open(path, mode='r') as file:
+        entries = file.read().split(',')
+        for i in range(len(entries)):
+            entries[i] = entries[i].lower().strip()
+        return entries
+
 def main():
     print("-------USA CHURCH EMAILS FINDER-------")
-    print("Written by Jacob Roberts-Baca\n")
+    print("Written by rbjacob101\n")
     threshold = int(input("Please enter the minimum population to consider when searching for churches in cities (an integer):"))
 
     print("Please select a path to the csv file containing the USA cities information...")
@@ -52,9 +65,13 @@ def main():
     print(f"Number of cities found with at least {threshold} people: {len(aggregator.dataset)}")
     print(f"Number of states registered: {len(aggregator.byState)}")
 
-    print("Please select a path to a folder where the raw data will be stored...")
+    print("Select a file containing a list of comma-seperated entries with states that should not be searched (optional)")
+    blacklist = getBlacklist()
+
+    print("Opening browser marionette... This can take a few moments...")
     col = Collector.collector()
-    collectAndStore(aggregator, col)
+    print("Please select a path to a folder where the raw data will be stored...")
+    collectAndStore(aggregator, col, blacklist)
 
 
 

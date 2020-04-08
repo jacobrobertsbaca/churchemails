@@ -44,6 +44,7 @@ class collector:
             secondsDelay = 7 # max number of seconds to delay before continuing
             WebDriverWait(self.driver, secondsDelay).until(EC.presence_of_element_located((By.CLASS_NAME, self.kGoogleMapsSearchResultClass)))
         except TimeoutException:
+            print("Search results did not load in time. Skipping this city.")
             return []
 
         ## begin parsing through the search results
