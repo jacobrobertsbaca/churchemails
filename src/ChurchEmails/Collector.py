@@ -1,5 +1,9 @@
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import TimeoutException
 import time
 import re
 import requests
@@ -35,6 +39,13 @@ class collector:
         searchbar.send_keys(f"churches in {city}, {state}")
         searchbar.send_keys(Keys.RETURN)
 
+        # wait for search results to become available
+        try:
+            secondsDelay = 7 # max number of seconds to delay before continuing
+            WebDriverWait(self.driver, secondsDelay).until(EC.presence_of_element_located((By.CLASS_NAME, self.kGoogleMapsSearchResultClass)))
+        except TimeoutException:
+            return []
+
         ## begin parsing through the search results
         time.sleep (5)
         resultElements = self.driver.find_elements_by_class_name(self.kGoogleMapsSearchResultClass)
@@ -61,15 +72,23 @@ class collector:
             if not result["url"]: continue
             urlparts = urlsplit(result["url"])
             url = f"{urlparts.scheme}://{urlparts.netloc}{urlparts.path}"
-            print(f"Scraping '{url}' for emails.")
             # get HTTP raw response
             try:
+                start = time.clock()
+                print(f"Getting raw html from '{url}'... ", end='')
                 response = requests.get(url)
             except (requests.exceptions.MissingSchema, requests.exceptions.ConnectionError):
+                print(f"failed.")
                 continue
-            if (not response.ok): continue
+            if (not response.ok):
+                print(f"failed.")
+                continue
+            else: print(f"took {(time.clock() - start) * 1000} ms")
 
+            start = time.clock()
+            print(f"Scraping '{url}' for emails... ", end='')
             potentialEmails = set(re.findall(self.kEmailRegex, response.text, re.I))
+            print(f"took {(time.clock() - start) * 1000} ms")
             emails = [] # find processed emails list
 
             for email in potentialEmails:
@@ -84,8 +103,7 @@ class collector:
             result["emails"] = emails
             success.append(result)
 
-
-        sleep(10)
+        return success
 
     def quit (self):
         self.driver.close()
