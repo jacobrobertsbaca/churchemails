@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.28307.902
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "ChurchEmails", "ChurchEmails\ChurchEmails.pyproj", "{293AB157-1817-4DD7-A7DB-AB49F8B5A4F2}"
 EndProject
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "ChurchEmails.Aggregator", "ChurchEmails.Aggregator\ChurchEmails.Aggregator.pyproj", "{79B11156-4722-4E1D-AE1D-15BF464C5B50}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -13,6 +15,8 @@ Global
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{293AB157-1817-4DD7-A7DB-AB49F8B5A4F2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{293AB157-1817-4DD7-A7DB-AB49F8B5A4F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{79B11156-4722-4E1D-AE1D-15BF464C5B50}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{79B11156-4722-4E1D-AE1D-15BF464C5B50}.Release|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -27,8 +27,8 @@ def collectAndStore(aggregator, collector, blacklist=[]):
             # open city file
             cityPath = os.path.join(statePath, city["city"]) + ".csv"
             if (os.path.isfile(cityPath)): os.remove(cityPath)
-            with open(cityPath, 'w') as city_file:
-                csvWriter = csv.writer(city_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL, lineterminator="\r\n")
+            with open(cityPath, mode='w', newline='') as city_file:
+                csvWriter = csv.writer(city_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
                 # write headers
                 csvWriter.writerow(["name", "location", "type", "url", "email"])
                 # collect info
